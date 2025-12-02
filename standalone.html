@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Particle System - Hand Gesture Control</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #0a0a0a;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    #app {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    .app-header {
+      position: absolute;
+      top: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .app-title {
+      font-size: 48px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 3s ease-in-out infinite;
+      background-size: 200% 200%;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .app-subtitle {
+      font-size: 16px;
+      font-weight: 500;
+      margin: 8px 0 0 0;
+      color: rgba(255, 255, 255, 0.6);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    #status {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: monospace;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      z-index: 100;
+    }
+
+    #controls {
+      position: fixed;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(15, 15, 15, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 20px;
+      width: 320px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+
+    .control-header {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 20px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .control-section {
+      margin-bottom: 24px;
+    }
+
+    .control-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      color: rgba(255, 255, 255, 0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+    }
+
+    .template-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .template-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .template-btn.active {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+      border-color: #667eea;
+      box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .template-icon {
+      font-size: 32px;
+    }
+
+    .color-input {
+      width: 100%;
+      height: 50px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .particle-slider {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+    }
+
+    .slider-value {
+      min-width: 60px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 14px;
+      font-family: monospace;
+    }
+
+    .instructions {
+      font-size: 13px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .instructions ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .instructions li {
+      padding: 8px 0;
+    }
+
+    .instructions strong {
+      color: #667eea;
+    }
+
+    #video {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 200px;
+      height: 150px;
+      transform: scaleX(-1);
+      border-radius: 12px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      display: none;
+    }
+
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      color: #667eea;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="loading">Loading...</div>
+    <div id="canvas-container"></div>
+
+    <div class="app-header">
+      <h1 class="app-title">3D Particle System</h1>
+      <p class="app-subtitle">Hand Gesture Controlled</p>
+    </div>
+
+    <div id="status">
+      <div>Hands: <span id="hand-count">0</span> <span id="status-light" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#666;margin-left:10px"></span></div>
+      <div>Scale: <span id="scale-value">1.00</span>x</div>
+    </div>
+
+    <div id="controls">
+      <h2 class="control-header">Particle Controls</h2>
+
+      <div class="control-section">
+        <h3>Templates</h3>
+        <div class="template-grid">
+          <button class="template-btn active" onclick="changeTemplate('heart')" data-template="heart">
+            <span class="template-icon">❤️</span>
+            <span>Heart</span>
+          </button>
+          <button class="template-btn" onclick="changeTemplate('flower')" data-template="flower">
+            <span class="template-icon">🌸</span>
+            <span>Flower</span>
+          </button>
+          <button class="template-btn" onclick="changeTemplate('saturn')" data-template="saturn">
+            <span class="template-icon">🪐</span>
+            <span>Saturn</span>
+          </button>
+          <button class="template-btn" onclick="changeTemplate('buddha')" data-template="buddha">
+            <span class="template-icon">🧘</span>
+            <span>Buddha</span>
+          </button>
+          <button class="template-btn" onclick="changeTemplate('fireworks')" data-template="fireworks">
+            <span class="template-icon">🎆</span>
+            <span>Fireworks</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="control-section">
+        <h3>Color</h3>
+        <input type="color" id="color-picker" class="color-input" value="#ff69b4" onchange="changeColor(this.value)">
+      </div>
+
+      <div class="control-section">
+        <h3>Particle Count</h3>
+        <div class="slider-container">
+          <input type="range" id="particle-count" class="particle-slider" min="500" max="5000" step="100" value="2000" oninput="changeParticleCount(this.value)">
+          <span class="slider-value" id="count-value">2000</span>
+        </div>
+      </div>
+
+      <div class="control-section instructions">
+        <h3>How to Use</h3>
+        <ul>
+          <li><strong>1 Hand:</strong> Open/close to scale</li>
+          <li><strong>2 Hands:</strong> Move apart/together</li>
+          <li><strong>Tip:</strong> Allow camera access</li>
+        </ul>
+      </div>
+    </div>
+
+    <video id="video" autoplay playsinline></video>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
+  <script>
+    let scene, camera, renderer, particles;
+    let currentTemplate = 'heart';
+    let currentColor = 0xff69b4;
+    let particleCount = 2000;
+    let targetScale = 1;
+    let baseScale = 1;
+    let hands, cameraUtil;
+
+    // Particle templates
+    const templates = {
+      heart: (count) => {
+        const positions = [];
+        for (let i = 0; i < count; i++) {
+          const t = (i / count) * Math.PI * 2;
+          const x = 16 * Math.pow(Math.sin(t), 3);
+          const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+          const z = (Math.random() - 0.5) * 5;
+          positions.push(new THREE.Vector3(x * 0.3, y * 0.3, z));
+        }
+        return positions;
+      },
+      flower: (count) => {
+        const positions = [];
+        const petals = 8;
+        for (let i = 0; i < count; i++) {
+          const angle = (i / count) * Math.PI * 2;
+          const r = 5 * (1 + 0.5 * Math.sin(petals * angle));
+          const x = r * Math.cos(angle);
+          const y = r * Math.sin(angle);
+          const z = (Math.random() - 0.5) * 3;
+          positions.push(new THREE.Vector3(x, y, z));
+        }
+        return positions;
+      },
+      saturn: (count) => {
+        const positions = [];
+        const ringCount = Math.floor(count * 0.4);
+        const sphereCount = count - ringCount;
+        for (let i = 0; i < sphereCount; i++) {
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+          const r = 4 + Math.random() * 1;
+          const x = r * Math.sin(phi) * Math.cos(theta);
+          const y = r * Math.sin(phi) * Math.sin(theta);
+          const z = r * Math.cos(phi);
+          positions.push(new THREE.Vector3(x, y, z));
+        }
+        for (let i = 0; i < ringCount; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const r = 6 + Math.random() * 3;
+          const x = r * Math.cos(angle);
+          const z = r * Math.sin(angle);
+          const y = (Math.random() - 0.5) * 0.5;
+          positions.push(new THREE.Vector3(x, y, z));
+        }
+        return positions;
+      },
+      buddha: (count) => {
+        const positions = [];
+        for (let i = 0; i < count; i++) {
+          const y = (i / count) * 12 - 6;
+          let radius;
+          if (y < -4) radius = 4 + Math.sin((y + 4) * 0.5) * 2;
+          else if (y < 2) radius = 3.5 - Math.abs(y) * 0.2;
+          else radius = 2.5 - (y - 2) * 0.3;
+          const angle = Math.random() * Math.PI * 2;
+          const r = radius * Math.random();
+          const x = r * Math.cos(angle);
+          const z = r * Math.sin(angle);
+          positions.push(new THREE.Vector3(x, y, z));
+        }
+        return positions;
+      },
+      fireworks: (count) => {
+        const positions = [];
+        const explosions = 5;
+        const particlesPerExplosion = Math.floor(count / explosions);
+        for (let e = 0; e < explosions; e++) {
+          const centerX = (Math.random() - 0.5) * 15;
+          const centerY = (Math.random() - 0.5) * 15;
+          const centerZ = (Math.random() - 0.5) * 15;
+          for (let i = 0; i < particlesPerExplosion; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const r = Math.random() * 3;
+            const x = centerX + r * Math.sin(phi) * Math.cos(theta);
+            const y = centerY + r * Math.sin(phi) * Math.sin(theta);
+            const z = centerZ + r * Math.cos(phi);
+            positions.push(new THREE.Vector3(x, y, z));
+          }
+        }
+        return positions;
+      }
+    };
+
+    function init() {
+      const container = document.getElementById('canvas-container');
+      document.querySelector('.loading').style.display = 'none';
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 30;
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setClearColor(0x0a0a0a, 1);
+      container.appendChild(renderer.domElement);
+
+      createParticles();
+      initHandTracking();
+      animate();
+
+      window.addEventListener('resize', onResize);
+    }
+
+    function createParticles() {
+      if (particles) scene.remove(particles);
+
+      const geometry = new THREE.BufferGeometry();
+      const positions = templates[currentTemplate](particleCount);
+      const positionArray = new Float32Array(positions.length * 3);
+
+      positions.forEach((pos, i) => {
+        positionArray[i * 3] = pos.x;
+        positionArray[i * 3 + 1] = pos.y;
+        positionArray[i * 3 + 2] = pos.z;
+      });
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+
+      const material = new THREE.PointsMaterial({
+        color: currentColor,
+        size: 0.15,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true
+      });
+
+      particles = new THREE.Points(geometry, material);
+      scene.add(particles);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      baseScale += (targetScale - baseScale) * 0.1;
+
+      if (particles) {
+        particles.rotation.y += 0.002;
+        particles.rotation.x += 0.001;
+        particles.scale.setScalar(baseScale);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function initHandTracking() {
+      const video = document.getElementById('video');
+
+      hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+      });
+
+      hands.setOptions({
+        maxNumHands: 2,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7
+      });
+
+      hands.onResults(onHandResults);
+
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+          video.onloadedmetadata = () => {
+            video.play();
+            processFrame();
+          };
+        })
+        .catch(err => console.log('Camera error:', err));
+
+      function processFrame() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          hands.send({ image: video });
+        }
+        requestAnimationFrame(processFrame);
+      }
+    }
+
+    function onHandResults(results) {
+      const handCount = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+      document.getElementById('hand-count').textContent = handCount;
+      document.getElementById('status-light').style.background = handCount > 0 ? '#00ff00' : '#666';
+
+      if (handCount === 1) {
+        const openness = calculateHandOpenness(results.multiHandLandmarks[0]);
+        targetScale = 0.5 + openness * 1.5;
+      } else if (handCount === 2) {
+        const hand1 = results.multiHandLandmarks[0];
+        const hand2 = results.multiHandLandmarks[1];
+        const distance = calculateHandDistance(hand1, hand2);
+        const openness1 = calculateHandOpenness(hand1);
+        const openness2 = calculateHandOpenness(hand2);
+        const avgOpenness = (openness1 + openness2) / 2;
+        targetScale = (0.5 + distance * 3) * (0.5 + avgOpenness * 0.5);
+        targetScale = Math.min(Math.max(targetScale, 0.3), 4);
+      } else {
+        targetScale = 1;
+      }
+
+      document.getElementById('scale-value').textContent = targetScale.toFixed(2);
+    }
+
+    function calculateHandOpenness(landmarks) {
+      if (!landmarks || landmarks.length < 21) return 0;
+      const fingerTips = [8, 12, 16, 20];
+      const fingerBases = [5, 9, 13, 17];
+      const palm = landmarks[0];
+      let totalDistance = 0;
+      let baseDistance = 0;
+
+      fingerTips.forEach((tip, i) => {
+        const tipPoint = landmarks[tip];
+        const basePoint = landmarks[fingerBases[i]];
+        const tipDist = Math.sqrt(
+          Math.pow(tipPoint.x - palm.x, 2) +
+          Math.pow(tipPoint.y - palm.y, 2) +
+          Math.pow(tipPoint.z - palm.z, 2)
+        );
+        const baseDist = Math.sqrt(
+          Math.pow(basePoint.x - palm.x, 2) +
+          Math.pow(basePoint.y - palm.y, 2) +
+          Math.pow(basePoint.z - palm.z, 2)
+        );
+        totalDistance += tipDist;
+        baseDistance += baseDist;
+      });
+
+      return Math.min(1, totalDistance / (baseDistance * 1.5));
+    }
+
+    function calculateHandDistance(hand1, hand2) {
+      if (!hand1 || !hand2) return 0;
+      const palm1 = hand1[9];
+      const palm2 = hand2[9];
+      return Math.sqrt(
+        Math.pow(palm1.x - palm2.x, 2) +
+        Math.pow(palm1.y - palm2.y, 2) +
+        Math.pow(palm1.z - palm2.z, 2)
+      );
+    }
+
+    function changeTemplate(template) {
+      currentTemplate = template;
+      createParticles();
+      document.querySelectorAll('.template-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.template === template);
+      });
+    }
+
+    function changeColor(color) {
+      currentColor = parseInt(color.replace('#', '0x'));
+      if (particles) particles.material.color.setHex(currentColor);
+    }
+
+    function changeParticleCount(count) {
+      particleCount = parseInt(count);
+      document.getElementById('count-value').textContent = count;
+      createParticles();
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
