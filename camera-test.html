@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camera Test</title>
+  <style>
+    body { margin: 0; padding: 40px; background: #1a1a1a; color: white; font-family: Arial; }
+    .box { background: #2a2a2a; padding: 30px; border-radius: 10px; max-width: 600px; margin: 20px auto; }
+    .status { font-size: 24px; font-weight: bold; margin: 20px 0; }
+    .success { color: #0f0; }
+    .error { color: #f00; }
+    .warning { color: #ff0; }
+    button { padding: 15px 30px; font-size: 18px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
+    button:hover { background: #5568d3; }
+    video { width: 100%; max-width: 640px; border: 2px solid #667eea; border-radius: 10px; margin: 20px 0; }
+    .instructions { background: #333; padding: 20px; border-radius: 5px; margin: 20px 0; line-height: 1.8; }
+    .instructions h3 { color: #667eea; margin-top: 0; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>🎥 Camera Permission Test</h1>
+    <div class="status" id="status">Click the button below to test camera access</div>
+
+    <button onclick="testCamera()">TEST CAMERA ACCESS</button>
+
+    <div id="video-container"></div>
+
+    <div id="instructions" style="display:none;"></div>
+  </div>
+
+  <script>
+    async function testCamera() {
+      const status = document.getElementById('status');
+      const container = document.getElementById('video-container');
+      const instructions = document.getElementById('instructions');
+
+      status.textContent = '⏳ Requesting camera access...';
+      status.className = 'status warning';
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+
+        // SUCCESS!
+        status.textContent = '✅ CAMERA WORKING! You should see yourself below:';
+        status.className = 'status success';
+
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.style.transform = 'scaleX(-1)'; // Mirror
+        container.innerHTML = '';
+        container.appendChild(video);
+
+        instructions.style.display = 'block';
+        instructions.innerHTML = `
+          <div class="instructions">
+            <h3>✅ Camera is working!</h3>
+            <p>Your camera is now active. The 3D particle system will work.</p>
+            <p><strong>Next step:</strong> Open the main application and the camera will work there too.</p>
+          </div>
+        `;
+
+      } catch (error) {
+        // FAILED!
+        status.textContent = '❌ CAMERA BLOCKED: ' + error.name;
+        status.className = 'status error';
+
+        let fixInstructions = '';
+
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          fixInstructions = `
+            <div class="instructions">
+              <h3>🚫 Camera Permission Denied</h3>
+              <p><strong>You blocked camera access.</strong> Here's how to fix it:</p>
+
+              <h4>Google Chrome:</h4>
+              <ol>
+                <li>Look at the <strong>address bar</strong> (top of browser)</li>
+                <li>Click the <strong>🔒 lock icon</strong> or <strong>🎥 camera icon</strong></li>
+                <li>Find "Camera" and change it to <strong>"Allow"</strong></li>
+                <li>Click the button above again</li>
+              </ol>
+
+              <h4>Safari:</h4>
+              <ol>
+                <li>Safari menu → <strong>Settings for This Website</strong></li>
+                <li>Find "Camera" → change to <strong>"Allow"</strong></li>
+                <li>Reload the page and click the button again</li>
+              </ol>
+
+              <h4>Firefox:</h4>
+              <ol>
+                <li>Click the <strong>🎥 camera icon</strong> in address bar</li>
+                <li>Click the <strong>X</strong> to remove the block</li>
+                <li>Reload and try again</li>
+              </ol>
+            </div>
+          `;
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          fixInstructions = `
+            <div class="instructions">
+              <h3>📷 No Camera Found</h3>
+              <p><strong>Your device doesn't have a camera or it's not detected.</strong></p>
+              <ul>
+                <li>Make sure your webcam is plugged in (if external)</li>
+                <li>Check if other apps can use the camera</li>
+                <li>Restart your browser</li>
+                <li>Try a different browser</li>
+              </ul>
+            </div>
+          `;
+        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+          fixInstructions = `
+            <div class="instructions">
+              <h3>⚠️ Camera In Use</h3>
+              <p><strong>Another application is using your camera.</strong></p>
+              <ul>
+                <li>Close other apps that use the camera (Zoom, Teams, Skype, etc.)</li>
+                <li>Close other browser tabs using the camera</li>
+                <li>Restart your browser</li>
+                <li>Try again</li>
+              </ul>
+            </div>
+          `;
+        } else {
+          fixInstructions = `
+            <div class="instructions">
+              <h3>❓ Unknown Error</h3>
+              <p><strong>Error:</strong> ${error.name}</p>
+              <p><strong>Message:</strong> ${error.message}</p>
+              <p>Try:</p>
+              <ul>
+                <li>Using a different browser (Chrome works best)</li>
+                <li>Checking system camera permissions</li>
+                <li>Restarting your computer</li>
+              </ul>
+            </div>
+          `;
+        }
+
+        instructions.style.display = 'block';
+        instructions.innerHTML = fixInstructions;
+      }
+    }
+  </script>
+</body>
+</html>
