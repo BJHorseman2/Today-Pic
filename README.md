@@ -42,7 +42,7 @@ npm install
 npm run dev
 ```
 
-4. Open your browser and navigate to `http://localhost:3000`
+4. Open your browser and navigate to the URL shown in the terminal (typically `http://localhost:5173`)
 
 5. **Important**: Allow camera access when prompted by your browser
 
